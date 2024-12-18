@@ -10,7 +10,15 @@ import React from 'react';
 const Home = () => {
   return (
     <div>
-      
+      <SignedOut>
+        <SignInButton />
+      </SignedOut>
+
+      <UserButton/>
+
+      <SignedIn>
+        <SignOutButton />
+      </SignedIn>
     </div>
   );
 };
