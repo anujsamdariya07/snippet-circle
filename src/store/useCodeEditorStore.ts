@@ -33,7 +33,7 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => {
     output: '',
     isRunning: false,
     error: '',
-    editor: '',
+    editor: null,
     executionResult: null,
 
     getCode: () => get().editor?.getValue() || '',
