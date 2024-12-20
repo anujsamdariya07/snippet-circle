@@ -35,7 +35,7 @@ const EditorPanel = () => {
   }, [setFontSize]);
 
   if (!mounted) {
-    return null;    
+    return null;
   }
 
   const handleRefresh = () => {
