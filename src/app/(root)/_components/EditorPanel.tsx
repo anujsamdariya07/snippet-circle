@@ -160,6 +160,8 @@ const EditorPanel = () => {
           {!clerk.loaded && <EditorPanelSkeleton />} 
         </div>
       </div>
+
+      
     </div>
   );
 };

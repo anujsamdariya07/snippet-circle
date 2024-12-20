@@ -47,33 +47,127 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => {
     },
 
     setTheme: (theme: string) => {
-      localStorage.setItem('editor-theme', theme)
-      set({theme: theme})
+      localStorage.setItem('editor-theme', theme);
+      set({ theme: theme });
     },
 
     setFontSize: (fontSize: number) => {
-      localStorage.setItem('editor-font-size', fontSize.toString())
-      set({fontSize: fontSize})
+      localStorage.setItem('editor-font-size', fontSize.toString());
+      set({ fontSize: fontSize });
     },
 
     setLanguage: (language: string) => {
       // Save the current language code before switching
-      const currentCode = get().editor?.getValue()
+      const currentCode = get().editor?.getValue();
       if (currentCode) {
-        localStorage.setItem(`editor-code-${get().language}`, currentCode)
+        localStorage.setItem(`editor-code-${get().language}`, currentCode);
       }
 
-      localStorage.setItem('editor-language', language)
+      localStorage.setItem('editor-language', language);
 
       set({
         language: language,
         output: '',
         error: null,
-      })
+      });
     },
 
     runCode: async () => {
-      // TODO
-    }
+      const { language, getCode } = get();
+      const code = getCode();
+
+      if (!code) {
+        set({ error: 'Please enter some code!' });
+        return;
+      }
+
+      set({ isRunning: true, error: null, output: '' });
+
+      try {
+        const runtime = LANGUAGE_CONFIG[language].pistonRuntime;
+        const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            language: runtime.language,
+            version: runtime.version,
+            files: [{ content: code }],
+          }),
+        });
+
+        const data = await response.json();
+
+        console.log('Data back from piston:', data);
+
+        if (data.message) {
+          // Handle api level error
+          set({
+            error: data.message,
+            executionResult: { code: code, error: data.message, output: '' },
+          });
+          return;
+        }
+
+        // Handle compilation error
+        if (data.compile && data.compile.code !== 0) {
+          const error = data.compile.stderr || data.compile.output;
+          set({
+            error: error,
+            executionResult: {
+              code: code,
+              output: '',
+              error: error,
+            },
+          });
+          return;
+        }
+
+        // Handle runtime error
+        if (data.run && data.run.code !== 0) {
+          const error = data.run.stderr || data.run.output;
+          set({
+            error: error,
+            executionResult: {
+              code: code,
+              output: '',
+              error: error,
+            },
+          });
+          return;
+        }
+
+        // Handle successful execution
+        const output = data.run.output;
+        set({
+          output: output.trim(),
+          error: null,
+          executionResult: {
+            code: code,
+            output: output,
+            error: null,
+          },
+        });
+      } catch (error) {
+        console.log('Error running code:', error);
+        set({
+          error:
+            'Something went wrong while running the code. Please try again later.',
+          executionResult: {
+            code: code,
+            error:
+              'Something went wrong while running the code. Please try again later.',
+            output: '',
+          },
+        });
+      } finally {
+        set({ isRunning: false });
+      }
+    },
   };
 });
+
+export const getExecutionResult = () => {
+  return useCodeEditorStore.getState().executionResult;
+};
